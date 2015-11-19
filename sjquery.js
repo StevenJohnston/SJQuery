@@ -1,27 +1,10 @@
-
 /*
 	Make shift JQUERY ($SJ)
-	In seperate script tag so i can make it into a library 
 */
-var elementCallList = [];
-function startMethod(elementIn)
-{
-
-}
-function nextMethod(elementIn)
-{
-	elementCallList;
-}
-
-var doEvent = function(elemnt,stackLimiter)
-{
-
-
-}
-
+var elementCallList = []; //Hold the calls for each element. Allows for queueing
 //<script type="text/javascript">
 //Name: $SJ ???
-//Decsription: Function expression to allow for selection of DOM elements. Some methods can also be 
+//Decsription: Function expression to allow for selection of DOM elements. Some methods can also be
 //				run on specified element. (methods listed in return case)
 //Param:
 //	element: The Dom element to select
@@ -56,7 +39,7 @@ var $SJ = function(elementIn) {
 				break;
 			default: //by TagName
 				if(elementIn == "window"){
-					elements.push(document.getElementsByTagName(elementIn));
+					elements.push(window);
 				}
 				else
 				{
@@ -78,23 +61,15 @@ var $SJ = function(elementIn) {
 		//Param:
 		//	html: What to be set in the innerHTML of element
 		//Return:
-		//	
+		//
         innerHTML: function(val) {
         	if(val != undefined)
         	{
 	        	for(var element in elements)
 	        	{
-	        		
-	        		elementCallList[elements[element].id].callList.push({"func" : function(element,val){element.innerHTML = val},
-	        														"val" : val,"delay" : 0});
-
-					if(elementCallList[elements[element].id].running == false)
-					{
-						elementCallList[elements[element].id].running = true;
-						dequeue(elements[element].id);
-					}
+					queue(elements[element].id,function(element,val){element.innerHTML = val;},val,0);
 	        	}
-	        	return $SJ(elementIn,"defined");
+				return $SJ(elementIn,"defined");
 	        }else
 	        {
 	        	var innerHTMLs = [];
@@ -114,21 +89,61 @@ var $SJ = function(elementIn) {
         {
         	for(var element in elements)
         	{
-        		
-        		elementCallList[elements[element].id].callList.push({"func" : function(element,val){},
-        														"val" : val,"delay" : val});
-
-				if(elementCallList[elements[element].id].running == false)
-				{
-					elementCallList[elements[element].id].running = true;
-					dequeue(elements[element].id);
-				}
+				queue(elements[element].id,function(element,val){},val,val);
         	}
-        	return $SJ(elementIn,"defined");
-        },/*
-    	//Name: style
+			return $SJ(elementIn,"defined");
+        },
+		//Name: ready
+		//Decsription: Set function to be called when element's onload function is called
+		//Param:
+		//	func: The function to set element's onload to
+		//Return:
+		//	???
+        ready: function(func) {
+        	for(var element in elements)
+        	{
+        		elements[element].onload = func;
+	        	queue(elements[element].id,function(element,obj){element.onload = obj;},func,0);
+	        }
+			return $SJ(elementIn,"defined");
+        },
+		//Name: focus
+		//Decsription: Sets focus to element
+		//Param:
+		//
+		//Return:
+		//
+        focus: function(index){
+        	if(index == undefined) index = 0;
+			if(index >= elements.length) index = 0;
+			queue(elements[index].id,function(element,val){element.focus();},undefined,0)
+			return $SJ(elementIn,"defined");
+        },
+		//Name: click
+		//Decsription: Set function to be called when element's onclick function is called
+		//Param:
+		//	func: The function to set element's onclick to
+		//Return:
+		//
+        click: function(func){
+        	for (var element in elements)
+        	{
+	        	if(func == undefined){
+	        		//Credit to KooiInc
+	        		//http://stackoverflow.com/questions/2705583/how-to-simulate-a-click-with-javascript
+	        		var evObj = document.createEvent('Events');
+					evObj.initEvent("click", true, false);
+					elements[element].dispatchEvent(evObj);
+	        	}
+	        	else{
+	        		queue(elements[element].id, function(element,obj){element.onclick = obj;},func,0);
+	        	}
+	        }
+			return $SJ(elementIn,"defined");
+        },
+		//Name: style
 		//Decsription: set specified style attribute to specified value
-		//Param: 
+		//Param:
 		//	attr: The style attribute to change
 		//Return:
 		//	value: Value to set attribute to
@@ -144,10 +159,10 @@ var $SJ = function(elementIn) {
 	        			}
 	        			else
 	        			{
-	        				elements[element].style.display = val;
+							queue(elements[element].id,function(element,obj){element.style.display=obj;},val,0);
 	        			}
 	        			break;
-	        		case "background-color": 
+	        		case "background-color":
 					case "backgroundColor":
 					case "backgroundcolor":
 	        			if(val == undefined)
@@ -156,159 +171,50 @@ var $SJ = function(elementIn) {
 	        			}
 	        			else
 	        			{
-	        				elements[element].style.backgroundColor = val;
+							queue(elements[element].id,function(element,obj){element.style.backgroundColor=obj;},val,0);
 	        			}
 	        			break;
 	        		default:
 	        			break;
 	        	}
 	        }
-        	
+			return $SJ(elementIn,"defined");
         },
-    	//Name: ready
-		//Decsription: Set function to be called when element's onload function is called
-		//Param:
-		//	func: The function to set element's onload to
-		//Return:
-		//	???
-        ready: function(func) {
-        	for(var element in elements)
-        	{
-	        	if(elements[element] == document.getElementsByTagName("window")){
-	        		elements[element] = window;
-	        		elements[element].onload = func;
-	        	}
-	        }
-        },
-    	//Name: click
-		//Decsription: Set function to be called when element's onclick function is called
-		//Param:
-		//	func: The function to set element's onclick to
-		//Return:
-		//	
-        click: function(func){
-        	for (var element in elements)
-        	{
-	        	if(func == undefined){
-	        		//Credit to KooiInc
-	        		//http://stackoverflow.com/questions/2705583/how-to-simulate-a-click-with-javascript
-	        		var evObj = document.createEvent('Events');
-					evObj.initEvent("click", true, false);
-					elements[element].dispatchEvent(evObj);
-	        	}
-	        	else{
-	        		elements[element].onclick = func;
-	        	}
-	        }
-        },
-    	//Name: value
+		//Name: value
 		//Decsription: Get or Set the value of element
 		//Param:
 		//	val: if set, sets value of element equal to val else return element's current value
 		//Return:
-		//	
+		//
         value: function(val){
         	for (var element in elements)
         	{
 	        	if(val != undefined){
-	        		elements[element].value = val;
+					queue(elements[element].id,function(element,obj){element.value=obj;},val,0);
 	        	}else{
 	        	   	return elements[element].value;
 	        	}
 	        }
+			return $SJ(elementIn,"defined");
         },
-    	//Name: changeColor
-		//Decsription: Changes background color of element
-		//Param: 
-		//	time: How long the change color animation should take (milli seconds)
-		//	toColor: Color to change to
-		//	rewind: If set will return color back to oringal after animation
-		//Return:
-		//	
-        changeColor: function(time,toColor,rewind)
-        {
-        	for (var element in elements)
-        	{
-	        	var speed =100;
-	        	var current = 0;
-	        	var last = time/speed/2;
-	        	var shadeUp = true;
-
-	        	var incrementer = 1;
-	        	//Check if originalcolor attribute has been set if not create it
-	        	var originalColor = thisElement.attr("originalcolor");
-	        	if(originalColor == undefined){
-					originalColor = window.getComputedStyle(elements[element],null).getPropertyValue("background-color");
-	        		thisElement.attr("originalcolor",originalColor);
-	        		thisElement.style("background-color",originalColor);
-	        	}
-	        	//Starting color
-	        	var fromColor = originalColor.substring(originalColor.indexOf("(")+1,originalColor.length-1).split(", ");
-	        	if(originalColor[4] != undefined){
-	        		for (var i = fromColor.length - 1; i >= 0; i--) {
-	        			fromColor[i] = 255;
-	        		};
-	        	}
-	        	//ending color
-	        	var toColor = toColor.substring(4,toColor.length-1).split(",");
-
-	        	//check if element is already been colorchanged
-	        	if(originalColor == elements[element].style.backgroundColor){
-	        		var loop = setInterval(animateColor,speed);
-	        	}
-
-	        	//Name: animateColor
-				//Decsription: Used in a setInterval call to animate color change
-				//Param:
-				//	
-				//Return:
-				//	
-	        	function animateColor()
-	        	{
-					thisElement.attr("colorchange","1");
-					//set color inbetween from and to color
-					var newBack = "rgb(";
-					for(var i = 0 ; i < 3 ; i++){
-						newBack += (parseInt(fromColor[i]) + parseInt((parseInt(toColor[i]) - parseInt(fromColor[i]))/last)*current) + ",";
-					}
-					newBack = newBack.slice(0,-1);
-					newBack += ")";
-					elements[element].style.backgroundColor = newBack;
-					
-					current+= incrementer;
-					if(current >=last && shadeUp == true){
-						incrementer = -1;
-						shadeUp = false;
-						if(rewind == undefined){
-							elements[element].style.backgroundColor = originalColor;
-							clearInterval(loop);
-						}
-					}
-					else if(current <= 0 && shadeUp == false){
-						elements[element].style.backgroundColor = originalColor;
-						clearInterval(loop);
-					}
-	        	}
-	        }
-        },
-    	//Name: setAttr
+		//Name: setAttr
 		//Decsription: set Attribute of elements to val
 		//Param:
 		//	name: The name of the attribute to set
 		//	val: The value to set the attribute to. If not defined nothing happens
 		//Return:
-		//	
+		//
         setAttr: function(name, val){
-			var valElements =[];
 			if(val != undefined)
 			{
 				for (var element in elements)
 				{
-					elements[element].setAttribute(name,val);
+					queue(elements[element].id,function(element,obj){element.setAttribute(obj.name,obj.val);},{"name":name,"val":val},0);
 				}
 			}
+			return $SJ(elementIn,"defined");
         },
-    	//Name: getAttr
+		//Name: getAttr
 		//Decsription: Get attribute of element(s)
 		//Param:
 		//	name: The name of the element to get
@@ -326,7 +232,7 @@ var $SJ = function(elementIn) {
 		        	if(elements[element].hasAttribute(name))
 					{
 						if(elements[element].getAttribute(name) == val)
-						{	
+						{
 							valElements.push(elements[element]);
 						}
 					}
@@ -334,34 +240,23 @@ var $SJ = function(elementIn) {
 	        }
 			return valElements;
 		},
-    	//Name: keydown
+		//Name: keydown
 		//Decsription: Set function to be called when element's onkeydown function is called
 		//Param:
 		//	func: The function to set element's onkeydown to
 		//Return:
-		//	
+		//
         keydown: function(func){
         	for (var element in elements)
         	{
-        		elements[element].onkeydown = func;
+				queue(elements[element].id,function(element,obj){element.onkeydown = obj;},func,0);
         	}
+			return $SJ(elementIn,"defined");
         },
-    	//Name: focus
-		//Decsription: Sets focus to element 
-		//Param:
-		//	
-		//Return:
-		//	
-        focus: function(){
-        	for (var element in elements)
-        	{
-        		elements[element].focus();
-        	}
-        },
-    	//Name: selectedId
+		//Name: selectedId
 		//Decsription: gets selected id of element
 		//Param:
-		//	
+		//
 		//Return:
 		//	selecteid(s) of element
         selectedId: function()
@@ -371,12 +266,12 @@ var $SJ = function(elementIn) {
         		return elements[element].options[elements[element].selectedIndex].value;
         	}
         },
-    	//Name: checked
+		//Name: checked
 		//Decsription: sets checked value of elements to val (true or false)
 		//Param:
 		//	val: value to set elements to
 		//Return:
-		//	
+		//
         checked: function(val)
         {
         	for (var element in elements)
@@ -387,58 +282,227 @@ var $SJ = function(elementIn) {
 	        	}
 	        	else
 	        	{
-	        		elements[element].checked = val;
+					queue(elements[element].id,function(element,obj){element.checked = obj;},val,0);
 	        	}
 	        }
-        },*/
+			return $SJ(elementIn,"defined");
+        },
+		//Name: repeat
+		//Desciption: Repeats function(s) mutiple times
+		//Param:
+		//
+		//Return:
+		//
+		repeat: function(func,times)
+		{
+			for (var element in elements)
+        	{
+				for(var i = 0 ; i < times; i++)
+				{
+					queue(elements[element].id,function(element,obj){obj();},func,0);
+				}
+			}
+		},
     }
 };
 
+//Name: $ajax
+//Desciption: Creates a ajax request to location
+//Param:
+//	obj: Can contain 
+//		data: data to send to server,
+//		url: Location to send data,
+//		method: GET or POST,
+//		async: True of False,
+//		dataType: type of data to send to server. Ex JSON
+//Return:
+//	object: allows for .done on $AJAX call
+var $ajax = function(obj){
+	//Set defaults if not exist
+	if(obj.url == undefined) return false;
+	if(obj.method == undefined) obj.method = "GET";
+	if(obj.async == undefined) obj.async = false;
+	if(obj.dataType == undefined) obj.dataType = text;
+	var queryString = "";
+	//check if datatype is JSON
+	if(obj.data != undefined && obj.dataType == "JSON")
+	{
+		//Loop each data element. Creates query string
+		for(var key in obj.data)
+		{
+			//Add key and value to queryString
+			queryString += key + "=" + obj.data[key] + "&";
+		}
+		//remove last & from queryString
+		queryString = queryString.slice(0,-1);
+	}
+	var doneFunc;//The function to be called on .done
+	var xhttp = new XMLHttpRequest();//HttpRequest
+	//function when onreadystatechange is called
+  	xhttp.onreadystatechange = function() {
+	    if (xhttp.readyState == 4 && xhttp.status == 200) {
+	    	//get data from request
+	    	var data = xhttp.responseText;
+	    	//Send data to success function
+	    	if(obj.success != undefined) obj.success(data);
+	    	//send data to .done function
+	    	if(doneFunc != undefined) doneFunc(data);
+    	}
+  	}
+  	//If method is get add queryString to url
+ 	if(obj.method == "GET")
+ 	{
+ 		if(queryString != "")
+ 		{
+ 			obj.url += "?" + queryString;
+ 		}
+ 	}
+ 	//open request 
+  	xhttp.open(obj.method, obj.url, obj.async);
+  	//If method is post send the queryString not with the url
+  	if(obj.method == "GET")
+  	{
+  		xhttp.send();
+  	}
+  	else
+  	{
+  		xhttp.send(queryString);
+  	}
+  	//Returns a object. allows for .done on $AJAX call
+  	return{
+  		//Name: done
+		//Desciption: Function to call when $AJAX function is complete
+		//Param:
+		//	func: The function to be called
+		//Return:
+		//	
+  		done: function(func){
+  			//Sets the function to be called
+  			doneFunc = func;
+  		},
+  	};
+};
 //Get next free id and return it
 var nextID =0;
+//Name: getNextID
+//Desciption: Sets nextID equal to the next free id that is not being used by any other elements
+//Param:
+//	
+//Return:
+//	First free id.
 function getNextID()
 {
+	//Loops till getElementById returns undefied
 	for(;document.getElementById(nextID) != undefined; nextID++){}
 	return nextID++;
 }
-//Gives each element a unique ID if it doesnt have one 
+
+//Name: GiveIDifNotExist
+//Desciption: Gives each element a unique ID if it doesnt have one
+//Param:
+//	elementArray: An array of elements
+//Return:
+//	
 function GiveIDifNotExist(elementArray)
 {
+	//Loop each element in elementArray
 	for(var element in elementArray)
 	{
-		if(elementArray[element].id == "")
+		//element doesnt have id or the id is undefined
+		if(elementArray[element].id == "" || elementArray[element].id == undefined)
 		{
+			//Give the element the first free id
 			elementArray[element].id = getNextID();
 		}
 	}
 }
 
+//Name: allocateElementsInList
+//Desciption: Create an index in elementCallList for each element
+//Param:
+//	elementArray: An array of elements
+//Return:
+//	
 function allocateElementsInList(elementArray)
 {
+	//Loop each element in elementArray
 	for(var element in elementArray)
 	{
+		//If element doent exist in elementCallList
 		if(elementCallList[elementArray[element].id] == undefined)
 		{
+			//Create new object for element
 			elementCallList[elementArray[element].id] = {};
+			//Give object a reference to the element
 			elementCallList[elementArray[element].id].elementObject = elementArray[element];
+			//set the queue running to false
 			elementCallList[elementArray[element].id].running = false;
+			//Create call list array for element
 			elementCallList[elementArray[element].id].callList = [];
 		}
 	}
 }
-
-function dequeue(elementIndex) 
+//Name: startQueue
+//Desciption: Starts the queue for an element
+//Param:
+//	index: The id of the element to start queue
+//Return:
+//	
+function startQueue(index)
 {
-	var thisEle = elementCallList[elementIndex];
+	//If queue isnt running start it
+	if(elementCallList[index].running == false)
+	{
+		//set queur to running
+		elementCallList[index].running = true;
+		//Start dequeueing 
+		dequeue(index);
+	}
+}
+//Name: queue
+//Desciption: Adds function to queue for element
+//Param:
+//	elementIndex: The index in elementCallList to be used
+//	func: function to add to call list of element
+//	obj: Data to be sent to function when called
+//	delay: Amount of time to wait before launching function 
+//Return:
+//
+function queue(elementIndex,func,obj,delay)
+{
+	//Add new callList item for element
+	elementCallList[elementIndex].callList.push({"func" : func,
+													"obj" : obj,
+													"delay" : delay});
+	//Try and start the queue of the element
+	startQueue(elementIndex);
+}
+//Name: dequeue
+//Desciption: Runs the first function in callList Queue. 
+//Param:
+//	elementIndex: The index in elementCallList to be used
+//Return:
+//
+function dequeue(elementIndex)
+{
+	var thisEle = elementCallList[elementIndex];//quick reference
+	//If the call list has function in it
 	if(thisEle.callList.length != 0)
 	{
+		//Runs first function in queue. Wait delay amount of miliseconds before running
 		setTimeout(function(){
-			thisEle.callList[0].func(thisEle.elementObject,thisEle.callList[0].val);
+			//Call the first function with the first object
+			thisEle.callList[0].func(thisEle.elementObject,thisEle.callList[0].obj);
+			//Remove the first function in the queue (happenes after function is complete)
 			thisEle.callList.shift();
+			//Go to next function call in the lastList
 			dequeue(elementIndex);
+		//Amout of delay before calling function
 		},thisEle.callList[0].delay);
 	}
-	thisEle.running = false;
-	//var thisEle = elementCallList[elementIndex];
-	//thisEle.callList[0].func(thisEle.elementObject,thisEle.callList[0].val);
+	//No calls in call list. Stop queue
+	else
+	{
+		thisEle.running = false;
+	}
 }
